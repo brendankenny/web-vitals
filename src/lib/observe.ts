@@ -59,7 +59,7 @@ export const observe = <K extends keyof PerformanceEntryMap>(
             buffered: true,
           },
           opts || {}
-        ) as PerformanceObserverInit
+        )
       );
       return po;
     }

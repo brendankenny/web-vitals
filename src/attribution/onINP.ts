@@ -20,12 +20,14 @@ import {onINP as unattributedOnINP} from '../onINP.js';
 import {
   INPMetric,
   INPMetricWithAttribution,
-  INPReportCallback,
   INPReportCallbackWithAttribution,
   ReportOpts,
 } from '../types.js';
 
-const attributeINP = (metric: INPMetric): void => {
+const attributeINP = (metric: INPMetric): INPMetricWithAttribution => {
+  // Type assert to unlock attribution property.
+  const attributedMetric = metric as INPMetricWithAttribution;
+
   if (metric.entries.length) {
     const longestEntry = metric.entries.sort((a, b) => {
       // Sort by: 1) duration (DESC), then 2) processing time (DESC)
@@ -37,17 +39,19 @@ const attributeINP = (metric: INPMetric): void => {
       );
     })[0];
 
-    (metric as INPMetricWithAttribution).attribution = {
+    attributedMetric.attribution = {
       eventTarget: getSelector(longestEntry.target),
       eventType: longestEntry.name,
       eventTime: longestEntry.startTime,
       eventEntry: longestEntry,
       loadState: getLoadState(longestEntry.startTime),
     };
-    return;
+    return attributedMetric;
   }
   // Set an empty object if no other attribution has been set.
-  (metric as INPMetricWithAttribution).attribution = {};
+  attributedMetric.attribution = {};
+
+  return attributedMetric;
 };
 
 /**
@@ -81,11 +85,8 @@ export const onINP = (
   onReport: INPReportCallbackWithAttribution,
   opts?: ReportOpts
 ) => {
-  unattributedOnINP(
-    ((metric: INPMetricWithAttribution) => {
-      attributeINP(metric);
-      onReport(metric);
-    }) as INPReportCallback,
-    opts
-  );
+  unattributedOnINP((metric: INPMetric) => {
+    const attributedMetric = attributeINP(metric);
+    onReport(attributedMetric);
+  }, opts);
 };

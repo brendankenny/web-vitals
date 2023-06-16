@@ -57,7 +57,7 @@ export const onLCP = (onReport: LCPReportCallback, opts?: ReportOpts) => {
     let report: ReturnType<typeof bindReporter>;
 
     const handleEntries = (entries: LCPMetric['entries']) => {
-      const lastEntry = entries[entries.length - 1] as LargestContentfulPaint;
+      const lastEntry = entries[entries.length - 1];
       if (lastEntry) {
         // Only report if the page wasn't hidden prior to LCP.
         if (lastEntry.startTime < visibilityWatcher.firstHiddenTime) {

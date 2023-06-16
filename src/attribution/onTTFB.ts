@@ -18,14 +18,16 @@ import {onTTFB as unattributedOnTTFB} from '../onTTFB.js';
 import {
   TTFBMetric,
   TTFBMetricWithAttribution,
-  TTFBReportCallback,
   TTFBReportCallbackWithAttribution,
   ReportOpts,
 } from '../types.js';
 
-const attributeTTFB = (metric: TTFBMetric): void => {
-  if (metric.entries.length) {
-    const navigationEntry = metric.entries[0];
+const attributeTTFB = (metric: TTFBMetric): TTFBMetricWithAttribution => {
+  // Type assert to unlock attribution property.
+  const attributedMetric = metric as TTFBMetricWithAttribution;
+
+  if (attributedMetric.entries.length) {
+    const navigationEntry = attributedMetric.entries[0];
     const activationStart = navigationEntry.activationStart || 0;
 
     const dnsStart = Math.max(
@@ -41,22 +43,23 @@ const attributeTTFB = (metric: TTFBMetric): void => {
       0
     );
 
-    (metric as TTFBMetricWithAttribution).attribution = {
+    attributedMetric.attribution = {
       waitingTime: dnsStart,
       dnsTime: connectStart - dnsStart,
       connectionTime: requestStart - connectStart,
-      requestTime: metric.value - requestStart,
+      requestTime: attributedMetric.value - requestStart,
       navigationEntry: navigationEntry,
     };
-    return;
+    return attributedMetric;
   }
   // Set an empty object if no other attribution has been set.
-  (metric as TTFBMetricWithAttribution).attribution = {
+  attributedMetric.attribution = {
     waitingTime: 0,
     dnsTime: 0,
     connectionTime: 0,
     requestTime: 0,
   };
+  return attributedMetric;
 };
 
 /**
@@ -78,11 +81,8 @@ export const onTTFB = (
   onReport: TTFBReportCallbackWithAttribution,
   opts?: ReportOpts
 ) => {
-  unattributedOnTTFB(
-    ((metric: TTFBMetricWithAttribution) => {
-      attributeTTFB(metric);
-      onReport(metric);
-    }) as TTFBReportCallback,
-    opts
-  );
+  unattributedOnTTFB((metric: TTFBMetric) => {
+    const attributedMetric = attributeTTFB(metric);
+    onReport(attributedMetric);
+  }, opts);
 };

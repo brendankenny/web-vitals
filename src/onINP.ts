@@ -208,7 +208,7 @@ export const onINP = (onReport: INPReportCallback, opts?: ReportOpts) => {
       // just one or two frames is likely not worth the insight that could be
       // gained.
       durationThreshold: opts!.durationThreshold || 40,
-    } as PerformanceObserverInit);
+    });
 
     report = bindReporter(
       onReport,

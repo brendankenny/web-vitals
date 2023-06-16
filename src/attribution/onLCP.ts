@@ -21,18 +21,21 @@ import {
   LCPAttribution,
   LCPMetric,
   LCPMetricWithAttribution,
-  LCPReportCallback,
   LCPReportCallbackWithAttribution,
   ReportOpts,
 } from '../types.js';
 
-const attributeLCP = (metric: LCPMetric) => {
-  if (metric.entries.length) {
+const attributeLCP = (metric: LCPMetric): LCPMetricWithAttribution => {
+  // Type assert to unlock attribution property.
+  const attributedMetric = metric as LCPMetricWithAttribution;
+
+  if (attributedMetric.entries.length) {
     const navigationEntry = getNavigationEntry();
 
     if (navigationEntry) {
       const activationStart = navigationEntry.activationStart || 0;
-      const lcpEntry = metric.entries[metric.entries.length - 1];
+      const lcpEntry =
+        attributedMetric.entries[attributedMetric.entries.length - 1];
       const lcpResourceEntry =
         lcpEntry.url &&
         performance
@@ -76,17 +79,18 @@ const attributeLCP = (metric: LCPMetric) => {
         attribution.lcpResourceEntry = lcpResourceEntry;
       }
 
-      (metric as LCPMetricWithAttribution).attribution = attribution;
-      return;
+      attributedMetric.attribution = attribution;
+      return attributedMetric;
     }
   }
   // Set an empty object if no other attribution has been set.
-  (metric as LCPMetricWithAttribution).attribution = {
+  attributedMetric.attribution = {
     timeToFirstByte: 0,
     resourceLoadDelay: 0,
     resourceLoadTime: 0,
-    elementRenderDelay: metric.value,
+    elementRenderDelay: attributedMetric.value,
   };
+  return attributedMetric;
 };
 
 /**
@@ -104,11 +108,8 @@ export const onLCP = (
   onReport: LCPReportCallbackWithAttribution,
   opts?: ReportOpts
 ) => {
-  unattributedOnLCP(
-    ((metric: LCPMetricWithAttribution) => {
-      attributeLCP(metric);
-      onReport(metric);
-    }) as LCPReportCallback,
-    opts
-  );
+  unattributedOnLCP((metric: LCPMetric) => {
+    const attributedMetric = attributeLCP(metric);
+    onReport(attributedMetric);
+  }, opts);
 };

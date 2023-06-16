@@ -20,20 +20,23 @@ import {onFID as unattributedOnFID} from '../onFID.js';
 import {
   FIDMetric,
   FIDMetricWithAttribution,
-  FIDReportCallback,
   FIDReportCallbackWithAttribution,
   ReportOpts,
 } from '../types.js';
 
-const attributeFID = (metric: FIDMetric): void => {
+const attributeFID = (metric: FIDMetric): FIDMetricWithAttribution => {
   const fidEntry = metric.entries[0];
-  (metric as FIDMetricWithAttribution).attribution = {
+  // Type assert to unlock attribution property.
+  const attributedMetric = metric as FIDMetricWithAttribution;
+  attributedMetric.attribution = {
     eventTarget: getSelector(fidEntry.target),
     eventType: fidEntry.name,
     eventTime: fidEntry.startTime,
     eventEntry: fidEntry,
     loadState: getLoadState(fidEntry.startTime),
   };
+
+  return attributedMetric;
 };
 
 /**
@@ -49,11 +52,8 @@ export const onFID = (
   onReport: FIDReportCallbackWithAttribution,
   opts?: ReportOpts
 ) => {
-  unattributedOnFID(
-    ((metric: FIDMetricWithAttribution) => {
-      attributeFID(metric);
-      onReport(metric);
-    }) as FIDReportCallback,
-    opts
-  );
+  unattributedOnFID((metric: FIDMetric) => {
+    const attributedMetric = attributeFID(metric);
+    onReport(attributedMetric);
+  }, opts);
 };

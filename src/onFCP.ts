@@ -48,7 +48,7 @@ export const onFCP = (onReport: FCPReportCallback, opts?: ReportOpts) => {
     let report: ReturnType<typeof bindReporter>;
 
     const handleEntries = (entries: FCPMetric['entries']) => {
-      (entries as PerformancePaintTiming[]).forEach((entry) => {
+      entries.forEach((entry) => {
         if (entry.name === 'first-contentful-paint') {
           po!.disconnect();
 

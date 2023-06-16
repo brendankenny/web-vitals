@@ -29,7 +29,6 @@ import {whenActivated} from './lib/whenActivated.js';
 import {
   FIDMetric,
   FIDReportCallback,
-  FirstInputPolyfillCallback,
   MetricRatingThresholds,
   ReportOpts,
 } from './types.js';
@@ -55,7 +54,7 @@ export const onFID = (onReport: FIDReportCallback, opts?: ReportOpts) => {
     let metric = initMetric('FID');
     let report: ReturnType<typeof bindReporter>;
 
-    const handleEntry = (entry: PerformanceEventTiming) => {
+    const handleEntry = (entry: FIDMetric['entries'][number]) => {
       // Only report if the page wasn't hidden prior to the first input.
       if (entry.startTime < visibilityWatcher.firstHiddenTime) {
         metric.value = entry.processingStart - entry.startTime;
@@ -65,7 +64,7 @@ export const onFID = (onReport: FIDReportCallback, opts?: ReportOpts) => {
     };
 
     const handleEntries = (entries: FIDMetric['entries']) => {
-      (entries as PerformanceEventTiming[]).forEach(handleEntry);
+      entries.forEach(handleEntry);
     };
 
     const po = observe('first-input', handleEntries);
@@ -92,9 +91,7 @@ export const onFID = (onReport: FIDReportCallback, opts?: ReportOpts) => {
 
       // Prefer the native implementation if available,
       if (!po) {
-        window.webVitals.firstInputPolyfill(
-          handleEntry as FirstInputPolyfillCallback
-        );
+        window.webVitals.firstInputPolyfill(handleEntry);
       }
       onBFCacheRestore(() => {
         metric = initMetric('FID');
@@ -106,9 +103,7 @@ export const onFID = (onReport: FIDReportCallback, opts?: ReportOpts) => {
         );
 
         window.webVitals.resetFirstInputPolyfill();
-        window.webVitals.firstInputPolyfill(
-          handleEntry as FirstInputPolyfillCallback
-        );
+        window.webVitals.firstInputPolyfill(handleEntry);
       });
     } else {
       // Only monitor bfcache restores if the browser supports FID natively.
@@ -123,7 +118,7 @@ export const onFID = (onReport: FIDReportCallback, opts?: ReportOpts) => {
           );
 
           resetFirstInputPolyfill();
-          firstInputPolyfill(handleEntry as FirstInputPolyfillCallback);
+          firstInputPolyfill(handleEntry);
         });
       }
     }

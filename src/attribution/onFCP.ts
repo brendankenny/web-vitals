@@ -21,36 +21,40 @@ import {onFCP as unattributedOnFCP} from '../onFCP.js';
 import {
   FCPMetric,
   FCPMetricWithAttribution,
-  FCPReportCallback,
   FCPReportCallbackWithAttribution,
   ReportOpts,
 } from '../types.js';
 
-const attributeFCP = (metric: FCPMetric): void => {
-  if (metric.entries.length) {
+const attributeFCP = (metric: FCPMetric): FCPMetricWithAttribution => {
+  // Type assert to unlock attribution property.
+  const attributedMetric = metric as FCPMetricWithAttribution;
+
+  if (attributedMetric.entries.length) {
     const navigationEntry = getNavigationEntry();
-    const fcpEntry = metric.entries[metric.entries.length - 1];
+    const fcpEntry =
+      attributedMetric.entries[attributedMetric.entries.length - 1];
 
     if (navigationEntry) {
       const activationStart = navigationEntry.activationStart || 0;
       const ttfb = Math.max(0, navigationEntry.responseStart - activationStart);
 
-      (metric as FCPMetricWithAttribution).attribution = {
+      attributedMetric.attribution = {
         timeToFirstByte: ttfb,
-        firstByteToFCP: metric.value - ttfb,
-        loadState: getLoadState(metric.entries[0].startTime),
+        firstByteToFCP: attributedMetric.value - ttfb,
+        loadState: getLoadState(attributedMetric.entries[0].startTime),
         navigationEntry,
         fcpEntry,
       };
-      return;
+      return attributedMetric;
     }
   }
   // Set an empty object if no other attribution has been set.
-  (metric as FCPMetricWithAttribution).attribution = {
+  attributedMetric.attribution = {
     timeToFirstByte: 0,
-    firstByteToFCP: metric.value,
+    firstByteToFCP: attributedMetric.value,
     loadState: getLoadState(getBFCacheRestoreTime()),
   };
+  return attributedMetric;
 };
 
 /**
@@ -63,11 +67,8 @@ export const onFCP = (
   onReport: FCPReportCallbackWithAttribution,
   opts?: ReportOpts
 ) => {
-  unattributedOnFCP(
-    ((metric: FCPMetricWithAttribution) => {
-      attributeFCP(metric);
-      onReport(metric);
-    }) as FCPReportCallback,
-    opts
-  );
+  unattributedOnFCP((metric: FCPMetric) => {
+    const attributedMetric = attributeFCP(metric);
+    onReport(attributedMetric);
+  }, opts);
 };
