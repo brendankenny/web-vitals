@@ -48,7 +48,7 @@ export const initMetric = <MetricName extends Metric['name']>(
   return {
     name,
     value: typeof value === 'undefined' ? -1 : value,
-    rating: 'good' as const, // Will be updated if the value changes.
+    rating: 'good' as const, // If needed, will be updated when reported. `const` to keep the type from widening to `string`.
     delta: 0,
     entries,
     id: generateUniqueID(),
